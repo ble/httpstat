@@ -56,9 +56,12 @@ var (
 	// Command line flags.
 	httpMethod      string
 	postBody        string
+	maxRedirects    uint
 	followRedirects bool
 	onlyHeader      bool
 	insecure        bool
+
+	redirectsFollowed uint
 
 	usage = fmt.Sprintf("usage: %s URL", os.Args[0])
 )
@@ -66,6 +69,7 @@ var (
 func init() {
 	flag.StringVar(&httpMethod, "X", "GET", "HTTP method to use")
 	flag.StringVar(&postBody, "d", "", "the body of a POST or PUT request")
+	flag.UintVar(&maxRedirects, "max-redirs", 10, "maximum number of redirects to follow if -L is set")
 	flag.BoolVar(&followRedirects, "L", false, "follow 30x redirects")
 	flag.BoolVar(&onlyHeader, "I", false, "don't read body of request")
 	flag.BoolVar(&insecure, "k", false, "allow insecure SSL connections")
@@ -237,6 +241,10 @@ func visit(url *url.URL) {
 			}
 			log.Fatalf("unable to follow redirect: %v", err)
 		}
+		if redirectsFollowed >= maxRedirects {
+			log.Fatal("exceeded maximum redirects")
+		}
+		redirectsFollowed++
 		visit(loc)
 	}
 }
